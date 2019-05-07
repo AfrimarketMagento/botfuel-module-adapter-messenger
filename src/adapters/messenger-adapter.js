@@ -235,8 +235,8 @@ class MessengerAdapter extends WebAdapter {
         type: 'template',
         payload: {
           template_type: 'button',
-          text: payload.options.text,
-          buttons: payload.value.map(MessengerAdapter.adaptAction),
+          text: payload.options.text ? payload.options.text : null,
+          buttons: payload.value.map((action) => this.adaptAction(action)),
         },
       },
     };
@@ -250,7 +250,7 @@ class MessengerAdapter extends WebAdapter {
   adaptCards(payload) {
     logger.debug('adaptCards', payload);
     const elements = payload.value.map((card) => {
-      const buttons = card.buttons.map(MessengerAdapter.adaptAction);
+      const buttons = card.buttons.map((action) => this.adaptAction(action));
       return Object.assign(card, { buttons });
     });
     return {
@@ -293,11 +293,10 @@ class MessengerAdapter extends WebAdapter {
 
   /**
    * @private
-   * @static
    * @param action - the action object
    * @returns the adapted action or null if action type is not valid
    */
-  static adaptAction(action) {
+  adaptAction(action) {
     logger.debug('adaptAction', action);
     switch (action.type) {
       case 'postback':
@@ -312,6 +311,14 @@ class MessengerAdapter extends WebAdapter {
           title: action.text,
           url: action.value,
         };
+      case 'share':
+        const elementShare = {
+          type: 'element_share',
+        };
+        if (action.value) {
+          elementShare.share_contents = this.adapt(action.value.toJson(null));
+        }
+        return elementShare;
       default:
         return null;
     }
